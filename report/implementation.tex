@@ -1,0 +1,152 @@
+\subsection{Theoretical Background}
+We didn't use any theoretical concepts for the implementation of graphic and user interaction primitives.
+
+\subsection{Implementation Details}
+As showed in the example section, the programmer sees some new always in-scope classes that help him with everything related to graphic and user interaction.
+We're going to explain their implementation in each phase of our compiler.
+\begin{itemize}
+\item{\textbf{Lexer}} \hfill \\
+In this phase we analyze not only the source code, but also the extra classes that the programmer can use.
+These extra classes are stored in the compiler and is its job to take care of them.
+However, the methods of the GUI class are not implemented in Tool, but they will be implemented later in the code generation phase and therefore the compiler won't look for a Tool body.
+This is done through the use of a new keyword (and so a new token): \textit{native}.
+The GUI class therefore looks like this:
+\begin{lstlisting}
+class GUI {
+  native def beginGUI(name: String, width: Int,
+    height: Int): Int
+  native def clear(): Int
+  native def getWidth(): Int
+  native def getHeight(): Int
+  native def getTime(): Int
+  native def getKey(id: Int): Bool
+  native def drawLine(x1: Int, y1: Int, x2: Int,
+    y2: Int): Int
+  native def drawString(str: String, x: Int,
+    y: Int, fontSize: Int): Int
+}
+\end{lstlisting}
+Their implementation is done, as shown later, through the use of some Java graphics libraries.
+We have decided to implement only the most basic ones in this way: all the other methods of the always in-scope classes related to graphics and user interaction rely on such methods of the GUI class.
+For example, the \textit{drawLine} method of the \textit{Point} class draws a line between two points using the native \textit{drawLine} method of the \textit{GUI} class:
+\begin{lstlisting}
+def drawLine(g: GUI, other: Point): Int = {
+  var useless: Int;
+  useless = g.drawLine(myX, myY,
+    other.x(), other.y());
+  return 0;
+}
+\end{lstlisting}
+To put it in a nutshell, at the end of the source code there will be some other code lines that look like this:
+\begin{lstlisting}
+class GUI {
+  // Native methods
+}
+class Point {
+  // Some methods built on the native one of the
+  // GUI class, such as draw() and drawLine(otherPoint)
+  
+  // Some helper methods, such as plus(otherPoint)
+  // and isInside(rect)
+}
+class Rect {
+  // Some methods
+}
+// Other classes
+\end{lstlisting}
+\item{\textbf{Parser}} \hfill \\
+Since there is a new type of method (i.e. a \textit{native} method with no Tool implementation), we need a new abstract tree to represent it:
+\begin{lstlisting}
+case class NativeMethodDecl(
+  retType: TypeTree,
+  id: Identifier,
+  args: List[Formal])
+  extends Tree with Symbolic[MethodSymbol]
+\end{lstlisting}
+Basically it has all the fields that a \textit{MethodDecl} has, except for the ones related to its body.
+The \textit{ClassDecl} class now looks like the following:
+\begin{lstlisting}
+case class ClassDecl(
+  id: Identifier,
+  parent: Option[Identifier],
+  vars: List[VarDecl],
+  methods: List[MethodDecl],
+  nativeMethods: Option[List[NativeMethodDecl]])
+  extends Tree with Symbolic[ClassSymbol]
+\end{lstlisting}
+\item{\textbf{Code Analysis}} \hfill \\
+In this phase there is a little new.
+In Name Analysis, we have to attach types to the native methods, just like we did with normal method declarations.
+In Type Checking, everything is the same as it was, that is we check the type safety of the program.
+\item{\textbf{Code Generation}} \hfill \\
+This is the hardest phase and therefore where most of the changes happened.
+We remind now how the \textit{GUI} class was structured:
+\begin{lstlisting}
+class GUI {
+  ...
+  native def getHeight(): Int
+  native def getTime(): Int
+  ...
+}
+\end{lstlisting}
+Now, instead of manually implement the native methods in bytecode, we\footnote{With some help from Manos Koukoutos} found that the simplest way to do it was to just let the \textit{GUI} class be a subclass of a Java class (i.e. ToolGUI.java) that has those methods implemented in Java.
+This is how we create the class file of the \textit{GUI} class:
+\begin{lstlisting}
+if (classDecl.id.value == "GUI")
+  new ClassFile(classDecl.id.value, Some("ToolGUI"))
+\end{lstlisting}
+The ToolGUI.java file can be found in the gui\textunderscore lib directory of the compiler and it contains the ToolGUI class, whose functions are implemented with the help of the Java Awt and Swing graphic libraries.
+In this way, when we implement the native methods, we can simply call their equivalent from the parent class:
+\begin{lstlisting}
+InvokeSpecial("ToolGUI", methodDecl.id.value,
+  methSignature)
+\end{lstlisting}
+The last thing to do in order to make all the native methods work is to have the class files of ToolGUI.java in the destination folder.
+We accomplish this by compiling the ToolGUI.java file (with the use of scala.sys.Process and javac) and putting it into the destination directory.
+This code is located in Main.scala.
+\end{itemize}
+\paragraph{A brief look at ToolGUI.java} \hfill \\
+This file is where the native methods are implemented.
+The class has four private fields:
+\begin{enumerate}
+\item{}
+a frame, that is used in most of its methods;
+\item{}
+an array of 256 booleans, whose \textit{i-th} cell is true if the key whose character has Ascii code \textit{i} is pressed in that moment;
+\item{}
+an array of two booleans, where the first cell is for the mouse left button and the second one is for the right button. They behave like the cells of the keyboard array;
+\item{}
+the time elapsed from the calling of \textit{beginGUI}.
+\end{enumerate}
+All the methods are straightforward except for \textit{beginGUI}.
+Here we create a frame and we set its title and dimensions.
+Then, we add three listeners to the frame:
+\begin{enumerate}
+\item{}
+a \textit{WindowAdapter}, that allows to terminate the process as soon as the frame is closed;
+\item{}
+a \textit{MouseAdapter}, that for now only prints which button was pressed;
+\item{}
+a \textit{KeyAdapter}, that manages the keys array.
+\end{enumerate}
+At last, we start a \textit{Timer} that updates the \textit{time} field each 10 milliseconds and we make the frame visible.
+\paragraph{Some small changes in Positioned} \hfill \\
+Even though the programmer is not supposed to modify the \textit{GUI} library, it can be useful to us, the compiler developers, to easily find errors in such library by showing them in the command line. This is possible thanks to a modification of the \textit{setPos} method of the \textit{Positioned} trait, whose body is now the following:
+\begin{lstlisting}
+val lib = new File("./gui_lib/GUI.tool")
+val t1 = Source.fromFile(file).mkString
+val linesFile1 = t1.lines.size
+    
+if (lineOf(pos) <= linesFile1) { /* If the
+  position is in the file in input */
+  _line = lineOf(pos)
+  _col  = columnOf(pos)
+  _file = Some(file)
+}
+else { // If the position is in the library GUI
+  _line = lineOf(pos) - linesFile1
+  _col  = columnOf(pos)
+  _file = Some(lib)
+}
+\end{lstlisting}
+In those lines we check if the position is in the input file or in the \textit{GUI} library by comparing its line to the number of lines of the input file and we set the \textit{\textunderscore file} variable accordingly.

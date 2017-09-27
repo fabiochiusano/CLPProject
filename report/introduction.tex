@@ -1,0 +1,15 @@
+Builiding a compiler for a language (even the simplest ones) is never a straightforward task and for this reason we splitted up the work in simpler parts.
+
+The first thing we did was to catch the meaningful parts of the source code and store them in objects called tokens.
+We parsed them later in an abstract sintax tree, which is a faithful representation of the source code (if done correctly).
+Next we checked such tree in order to find errors and bad coding behavior that the compiler can show to the programmer.
+While building a compiler, we should take advantage of all possible situations where we can help the programmer and, when possible, show him where something got bad (for instance, showing the line that caused the undesired behavior in the command line) and possibly help him solve the situation.
+There are a lot of code analysis phases that we could have added, and for the purpose of the course we made two of them.
+The first one is Name Analysis, whose intent is to check if we have a meaningful sequence of tokens by binding symbols to identifiers and mapping all their occurrences to their declarations, keeping track of the scope of the program.
+In this way, we can detect a lot of errors, such as variables or classes defined more than once, variables not declared or cycles in the inheritance graph.
+The second one is Type Checking, that verifies the type safety of a program, making sure that it conforms to all the type rules of the language.
+The last thing to do was the code generation phase, where we converted our checked abstract syntax tree to bytecode, which can be readily executed by the JVM.
+
+Even though the language we used can be considered simple, it is very powerful (it is Turing complete indeed).
+However, graphical application developer may not find it well suited for them, as there are no high-level functions that help them.
+Since we want our programming language to have worldwide success, we decided to ease their life and add elegant primitives for them. 

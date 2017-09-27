@@ -1,0 +1,14 @@
+There are a lot of possible ways to extend our compiler for graphic and user interaction.
+For instance, we can:
+\begin{itemize}
+\item{}
+add new graphic native methods by simply adding them to ToolGUI.java and GUI.tool, such as some for choosing colors and filling shapes. That would imply then to recompile ToolGUI.java;
+\item{}
+extend the Tool graphic library with more high-level classes and functions with more complex geometric shapes and actions, such as an action that makes a shape move in circular motion, as shown in example 3. In order to implement complex shapes, using an array of \textit{Point} would be the easiest way but two arrays of integers (i.e. one for abscissas and one for ordinates) can be used too;
+\item{}
+add a float type, that would make easier to implement complex computations without relying on the \textit{Frac} class;
+\item{}
+add primitives to display bitmaps.
+\item{}
+extend the language to allow functions to return \textit{Unit}. That would make the code much more cleaner.
+\end{itemize}

@@ -1,0 +1,259 @@
+In order to explain our custom extension, we will work through examples\footnote{The variable \textit{useless} that is present in the examples is necessary due to the fact that we can't return a void type and we can't use expressions as statements}, from the simplest to the hardest.
+
+\paragraph{Example 1: simple frame}\mbox{}\\
+\begin{lstlisting}
+
+object example1 {
+  def main() : Unit = { println(new Console().run); }
+}
+
+class Console {
+  def run(): String = {
+    var g: GUI;
+    var useless: Int;
+    var frameWidth: Int;
+    var frameHeight: Int;
+    
+    g = new GUI();
+    frameWidth = 800;
+    frameHeight = 600;
+    useless = g.beginGUI("Simple frame",
+      frameWidth, frameHeight);
+      
+    useless = g.drawString("Hello world!",
+      g.getWidth()/2, g.getHeight()/2, 50);
+    
+    return "App started";
+  }
+}
+\end{lstlisting}
+
+In this example we create a simple frame with a label and we show it to the user.
+In order to do it, we instantiate a \textit{GUI} object and we call \textit{beginGUI} on it, specifying the frame dimensions and title. 
+It's possible to create more than one frame by simply creating two or more \textit{GUI} objects.
+The variable that stores the \textit{GUI} object will be used later for all the activities that concern drawing on the frame, manage time and input from keyboard.
+The method \textit{drawString} is self-explanatory: it takes as arguments the string to show, its coordinates and the font size.
+
+\paragraph{Example 2: moving shapes and time management}\mbox{}\\
+\begin{lstlisting}
+
+object example2 {
+  def main() : Unit = { println(new Console().run); }
+}
+
+class Console {
+  def run(): String = {
+    var g: GUI;
+    var useless: Int;
+    var time: Int;
+    var frameDuration: Int;
+    var rect: Rect;
+		
+    g = new GUI();
+    useless = g.beginGUI("Simple frame", 800, 600);
+
+    rect = new Rect().init(new Point().init(10, 10), 20, 100);
+
+    time = 0;
+    frameDuration = 1;
+		
+    while(true){
+      useless = rect.draw(g);
+      if(frameDuration < g.getTime() - time){
+        useless = g.clear();
+        useless = rect.move(1, 1).draw(g);
+        time = time + frameDuration;
+      }
+    }
+		
+    return "App started";
+  }
+}
+\end{lstlisting}
+
+Here we create a frame with a moving rectangle on it, instantiating a \textit{Rect} object.
+Calling \textit{init} on a \textit{Rect} object, we give it its top left point, a width and a height.
+A point is represented by the \textit{Point} class whose fields are obviously its coordinates (the coordinate system has the origin in the top left corner).
+At last, we move the rectangle. This is accomplished by painting it at each execution of the loop and moving it each time the frame duration has passed.
+The \textit{clear} method clears the frame from everything that was previously painted and the \textit{draw} methods draw the object that they are called on. 
+At last, the \textit{getTime} method returns the time elapsed from the creation of the \textit{GUI} object and the \textit{move} method increments the coordinates of each point of the rectangle by its arguments.
+
+\paragraph{Example 3: Math and Frac for complex movement}\mbox{}\\
+\begin{lstlisting}
+object example3 {
+  def main() : Unit = {
+    println(new Console().run());     
+  }
+}
+
+class Console {
+  def run(): String = {
+    var g: GUI;
+    var useless: Int;
+    var time: Int;
+    var frameDuration: Int;
+    var frameWidth: Int;
+    var frameHeight: Int;
+    var square: Rect;
+    var squareSide: Int;
+    var c: Point; // movement center
+    var r: Int; // movement radius
+    var math: Math;
+		
+    g = new GUI();
+    frameWidth = 800;
+    frameHeight = 600;
+    useless = g.beginGUI("Simple frame",
+      frameWidth, frameHeight);
+
+    squareSide = 20;
+    c = new Point().init(frameWidth/2, frameHeight/2);
+    r = frameHeight/2 - 50;
+    square = new Rect().init(new Point().init(c.x() -
+      squareSide/2 + r, c.y() - squareSide/2), squareSide,
+      squareSide);
+
+    time = 0;
+    frameDuration = 1;
+    math = new Math();
+
+    while(true){
+      useless = square.draw(g);
+      if(frameDuration < g.getTime() - time){
+        useless = g.clear();
+        useless = square.setCenter(new Point().init(
+          c.x() + math.cos(g.getTime()).times(
+            new Frac().init(r, 1)).getRoundedInt() -
+            squareSide/2,
+          c.y() + math.sin(g.getTime()).times(
+            new Frac().init(r, 1)).getRoundedInt() -
+            squareSide/2
+        )).draw(g);
+        time = time + frameDuration;
+      }
+    }
+		
+  return "App started";
+  }
+}
+\end{lstlisting}
+
+Here we show how to use the classes \textit{Math} and \textit{Frac}, that help us with more complex computations.
+This is a little more challenging since in Tool there is no float type and therefore we have to rely only on integers.
+A square is created using the \textit{Rect} class and is moved in circular motion around the center of the frame thanks to the \textit{sin} and \textit{cos} functions of the \textit{Math} class, that return a \textit{Frac} (i.e. our representation of floats) and are in turn rounded to the nearest integer using the \textit{getRoundedInt} function.
+The \textit{setCenter} method of the \textit{Rect} class centers the square to the point that is passed as argument.
+
+\paragraph{Example 4: keyboard control}\mbox{}\\
+\begin{lstlisting}
+object example4 {
+  def main() : Unit = {
+    println(new Console().run());     
+  }
+}
+
+class Console {
+  def run(): String = {
+    var g: GUI;
+    var useless: Int;
+    var time: Int;
+    var frameDuration: Int;
+    var square: MySquare;
+		
+    g = new GUI();
+    useless = g.beginGUI("Prova 3", 800, 600);
+
+    square = new MySquare().init(
+      new Point().init(10, 30), 20);
+
+    time = 0;
+    frameDuration = 1;		
+    while(true){
+      useless = square.draw(g);
+      if(frameDuration < g.getTime() - time){
+        useless = g.clear();
+        useless = square.move(g).draw(g);
+        time = time + frameDuration;
+      }
+    }
+		
+    return "App started";
+  }
+}
+
+class MySquare {
+  var square: Rect;
+  var sideLength: Int;
+
+  def init(topLeft: Point, sL: Int): MySquare = {
+    square = new Rect().init(topLeft, sL, sL);
+    sideLength = sL;
+    return this;
+  }
+	
+  def move(g: GUI): MySquare = {
+    var dirX: Int;
+    var dirY: Int;
+		
+    if(g.getKey(119)) // w, go up
+      dirY = 0-1;
+    else if(g.getKey(115)) // s, go down
+      dirY = 1;
+    else 
+      dirY = 0;
+    if(g.getKey(97)) // a, go left
+      dirX = 0-1;
+    else if(g.getKey(100)) // d, go right
+      dirX = 1;
+    else
+      dirX = 0;
+			
+    square = square.move(dirX, dirY);
+		
+    return this;
+  }
+
+  def draw(g: GUI): Int = {
+    var useless: Int;
+    useless = square.draw(g);
+    return 0;
+  }
+}
+\end{lstlisting}
+
+In this example we create a small square and we move it on the screen with the use of the keyboard.
+The methods used are almost the same of example 2, except for the \textit{move} method of the \textit{MySquare} class.
+In its implementation, we check if the keys "w", "a", "s" and "d" are pressed with the method \textit{getKey} of the GUI class, that returns \textit{true} if such case (it wants the Ascii code of the character as argument).
+Later we move the square calling the method \textit{move} on it.
+
+\paragraph{More on new primitives}\mbox{}\\
+We have added six classes that are always in scope:
+
+\begin{itemize}
+\item{\textbf{GUI}}  \hfill \\
+It creates a frame with the method \textit{beginGUI}. It also manages the time elapsed with \textit{getTime}, the keyboard with \textit{getKey} and the mouse with \textit{getMousePosition} and \textit{getMouseButton}.
+\item{\textbf{Point}} \hfill \\
+Basic \textit{Point} class with coordinates and methods, such as:
+\begin{itemize}
+\item{\textit{plus}}, that adds it to another point (as they were vectors);
+\item{\textit{times}}, which is for scalar multiplication;
+\item{\textit{draw}}, self-explanatory;
+\item{\textit{drawLine}}, that draws a line that links two points;
+\item{\textit{move}}, that moves it of some dx and dy;
+\item{\textit{isInside}}, that returns true if such point is inside a \textit{Rect}.
+\end{itemize}
+\item{\textbf{Rect}} \hfill \\
+A rectangle defined by its top left point, width and height. It has methods to obtain all its vertices, to draw it and to move it.
+\item{\textbf{Circle}} \hfill \\
+A circle defined by its center and its radius.
+\item{\textbf{Frac}} \hfill \\
+A class that represents a fraction, with a lot of operations that can be done on it.
+\item{\textbf{Math}} \hfill \\
+A class that contains a lot of useful operations on integers and fractions, mainly used for graphic computations.
+\end{itemize}
+
+\paragraph{Extra: Pong}\mbox{}\\
+We've built a game like Pong to give an example of a more complex program that uses the new primitives.
+It's in the \textit{programs} directory along with all the other examples, we invite who wants to try it!
+Left player uses "w" and "s", while right player uses "o" and "l".
+
+
